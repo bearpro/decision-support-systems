@@ -5,95 +5,35 @@
 
 #!fsharp
 
-open Plotly.NET
-open System
-
-let chartA = 
-    let r = 0.1
-    let x0 = 50
-    let f xn = r * xn * (1. - xn)
-
-    let x = [0..6]
-    let y = x |> List.fold (fun (h::t) i -> (f h) :: h :: t) [x0]
-    Chart.Scatter(x, List.rev y, StyleParam.Mode.Lines_Markers, Name = "0 < r < 1")
-
-let chartB = 
-    let r = 1.1
-    let x0 = 0.01
-    let f xn = r * xn * (1. - xn)
-
-    let x = [0..100]
-    let y = x |> List.fold (fun (h::t) i -> (f h) :: h :: t) [x0]
-    Chart.Scatter(x, List.rev y, StyleParam.Mode.Lines_Markers, Name = "1 < r < 2")
-
-Chart.Grid (1, 2) [chartA; chartB]
-|> Chart.withSize (1200, 600)
+// Возвращает n'ый x при указанных x0 и r
+let xAtN x0 n r = 
+    let mutable xn = x0
+    for _ in 0..100 do
+        xn <- r * xn * (1. - xn)
+    xn
 
 #!fsharp
 
-let chartA =
-    let r = 2.2
-    let x0 = 0.01
-    let f xn = r * xn * (1. - xn)
+let black = Color.fromRGB 0 0 0
 
-    let x = [0..10]
-    let y = x |> List.fold (fun (h::t) i -> (f h) :: h :: t) [x0]
-    Chart.Scatter(x, List.rev y, StyleParam.Mode.Lines_Markers, Name = "2 < r < 3")
+// Сколько значений r брать (при 1 будет 160 точек, при 2 будет 320 точек..)
+let horisonatlAccuracyFactor = 6
+let verticalAccuracyFactor = 6
 
-let chartB =
-    let r = 3.40
-    let x0 = 0.01
-    let f xn = r * xn * (1. - xn)
 
-    let x = [0..100]
-    let y = x |> List.fold (fun (h::t) i -> (f h) :: h :: t) [x0]
-    Chart.Scatter(x, List.rev y, StyleParam.Mode.Lines_Markers, Name = "3 < r < 3.45")
+// Значения r
+let rs = [240 * horisonatlAccuracyFactor..400 * horisonatlAccuracyFactor] |> List.map (fun x -> (float x) / (100. * (float horisonatlAccuracyFactor)))
 
-Chart.Grid (1, 2) [chartA; chartB]
-|> Chart.withSize (1200, 600)
+// Значения  x0
+let x0s = [01 * verticalAccuracyFactor..99 * verticalAccuracyFactor] |> List.map (fun x0 -> (float x0) / (100. * (float verticalAccuracyFactor)))
 
-#!fsharp
+// Рисование графика
+let xs x0 = rs |> List.map (xAtN x0 100)
+let marker = Plotly.NET.TraceObjects.Marker.init(Size=1, Color=black)
+let chart xs = Chart.Scatter(rs, xs, StyleParam.Mode.Markers, Marker=marker, UseWebGL=true)
+let charts xss = xss |> Seq.map chart
 
-let chartA =
-    let r = 3.47
-    let x0 = 0.01
-    let f xn = r * xn * (1. - xn)
-
-    let x = [0..100]
-    let y = x |> List.fold (fun (h::t) i -> (f h) :: h :: t) [x0]
-    Chart.Scatter(x, List.rev y, StyleParam.Mode.Lines_Markers, Name = "3.45 < r < 3.54")
-
-let chartB =
-    let r = 3.55
-    let x0 = 0.01
-    let f xn = r * xn * (1. - xn)
-
-    let x = [0..100]
-    let y = x |> List.fold (fun (h::t) i -> (f h) :: h :: t) [x0]
-    Chart.Scatter(x, List.rev y, StyleParam.Mode.Lines_Markers, Name = "r = 3.55")
-
-Chart.Grid (1, 2) [chartA; chartB]
-|> Chart.withSize (1200, 600)
-
-#!fsharp
-
-let chartA =
-    let r = 3.83
-    let x0 = 0.01
-    let f xn = r * xn * (1. - xn)
-
-    let x = [0..100]
-    let y = x |> List.fold (fun (h::t) i -> (f h) :: h :: t) [x0]
-    Chart.Scatter(x, List.rev y, StyleParam.Mode.Lines_Markers, Name = "r = 3.83")
-
-let chartB =
-    let r = 5.1
-    let x0 = 0.001
-    let f xn = r * xn * (1. - xn)
-
-    let x = [0..6]
-    let y = x |> List.fold (fun (h::t) i -> (f h) :: h :: t) [x0]
-    Chart.Scatter(x, List.rev y, StyleParam.Mode.Lines_Markers, Name = "r > 4")
-
-Chart.Grid (1, 2) [chartA; chartB]
-|> Chart.withSize (1200, 600)
+x0s
+|> List.map xs
+|> charts
+|> Chart.combine

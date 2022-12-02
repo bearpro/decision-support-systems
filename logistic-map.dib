@@ -3,6 +3,8 @@
 #r "nuget: Plotly.NET, 3.0.0"
 #r "nuget: Plotly.NET.Interactive, 3.0.2"
 
+open Plotly.NET
+
 #!fsharp
 
 // Возвращает n'ый x при указанных x0 и r
@@ -22,7 +24,7 @@ let verticalAccuracyFactor = 6
 
 
 // Значения r
-let rs = [240 * horisonatlAccuracyFactor..400 * horisonatlAccuracyFactor] |> List.map (fun x -> (float x) / (100. * (float horisonatlAccuracyFactor)))
+let rs = [001 * horisonatlAccuracyFactor..400 * horisonatlAccuracyFactor] |> List.map (fun x -> (float x) / (100. * (float horisonatlAccuracyFactor)))
 
 // Значения  x0
 let x0s = [01 * verticalAccuracyFactor..99 * verticalAccuracyFactor] |> List.map (fun x0 -> (float x0) / (100. * (float verticalAccuracyFactor)))
@@ -37,3 +39,39 @@ x0s
 |> List.map xs
 |> charts
 |> Chart.combine
+|> Chart.withSize(1100, 700)
+
+#!markdown
+
+_todo: увеличить точность в разреженных участках: 3.5-5, 3.6-3.8_
+
+#!fsharp
+
+let black = Color.fromRGB 0 0 0
+
+// Сколько значений r брать (при 1 будет 160 точек, при 2 будет 320 точек..)
+let horisonatlAccuracyFactor = 120
+let verticalAccuracyFactor = 24
+
+
+// Значения r
+let rs = [354 * horisonatlAccuracyFactor..358 * horisonatlAccuracyFactor] |> List.map (fun x -> (float x) / (100. * (float horisonatlAccuracyFactor)))
+
+// Значения  x0
+let x0s = [01 * verticalAccuracyFactor..60 * verticalAccuracyFactor] |> List.map (fun x0 -> (float x0) / (100. * (float verticalAccuracyFactor)))
+
+// Рисование графика
+let xs x0 = rs |> List.map (xAtN x0 100)
+let marker = Plotly.NET.TraceObjects.Marker.init(Size=1, Color=black)
+let chart xs = Chart.Scatter(rs, xs, StyleParam.Mode.Markers, Marker=marker, UseWebGL=true)
+let charts xss = xss |> Seq.map chart
+
+x0s
+|> List.map xs
+|> charts
+|> Chart.combine
+|> Chart.withSize(1100, 700)
+
+#!markdown
+
+_todo: Построить зависимость x_n от n при данном r_ 

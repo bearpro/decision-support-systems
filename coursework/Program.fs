@@ -24,7 +24,20 @@ module HierarchicalAnalysis =
 
     type CriteriaLevel = Domain | Package | Attribute
 
-    type Criteria = { criteriaLevel: CriteriaLevel; name: string; wieght: float;  }
+    type Criteria = { criteriaLevel: CriteriaLevel; name: string; wieght: float; childs: list<Criteria> }
+
+    let bg (hd: HighlitningData) tree = 
+        let allAlternatives =
+            hd |> List.map (fun (_, attr, packageId) -> { 
+                attributeId = attr.id
+                packageId = packageId
+                domain = attr.domain
+                compatibilityTag = attr.compatibilityTag 
+            }) |> List.distinct
+
+        let criteria :: tail = allAlternatives
+
+        ()
 
     let buildHierarchy highlitningData =
         let allAlternatives (hd: HighlitningData) =
@@ -46,7 +59,6 @@ module HierarchicalAnalysis =
                      (Set.add alternative.attributeId attributes))
                     tail
                     
-
         let (domains, packages, attributes) = findUniqueEntries (Set.empty, Set.empty, Set.empty) allAlternatives
         
         let buildLayer entries criteriaLevel =
@@ -54,7 +66,8 @@ module HierarchicalAnalysis =
             |> Seq.map ^ fun entry -> { 
                 criteriaLevel = criteriaLevel
                 name = entry
-                wieght = 1. / float (Set.count entries) 
+                wieght = 1. / float (Set.count entries)
+                childs = []
             }
             |> List.ofSeq
 
@@ -66,14 +79,21 @@ module HierarchicalAnalysis =
         
         [domains; packages; attributes]
 
-    let evaluateHierarchy layers package =
-        let getAffectedCriterias criteria : Criteria list =
-            failwith "Not implemented"
+    let evaluateHierarchy criterias = 
+        let rec _evaluateHierarchy criterias (parentWeights: float list) =
+            [for criteria in criterias -> 
+                let parentWeights = criteria.wieght :: parentWeights
+                match criteria.childs with
+                | [] ->
+                    let n = float (List.length parentWeights)
+                    let total = List.reduce (fun a b -> a * b) parentWeights
+                    [criteria.name, total ** (1. / n)]
 
-        for layer in layers do
-            for criteria in layer do
-                let affected = getAffectedCriterias criteria
+                | childs ->
+                    let childEstimates = 
+                        _evaluateHierarchy childs parentWeights 
+                        |> List.reduce (fun a b -> a @ b)
+                    [ for (path, estimate) in childEstimates -> ($"{criteria.name}.{path}", estimate) ]
+            ]
 
-        ()
-
-()
+        _evaluateHierarchy criterias [] |> List.reduce (fun a b -> a @ b)
